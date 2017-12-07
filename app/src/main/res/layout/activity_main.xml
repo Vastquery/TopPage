@@ -8,6 +8,7 @@
     android:layout_width="match_parent"
     android:fitsSystemWindows="true">
 
+
     <include layout="@layout/include_list_viewpager"/>
 
     <android.support.design.widget.NavigationView
@@ -18,5 +19,7 @@
         android:fitsSystemWindows="true"
         app:headerLayout="@layout/nav_header"
         app:menu="@menu/drawer_view"/>
+
+
 
 </android.support.v4.widget.DrawerLayout>
