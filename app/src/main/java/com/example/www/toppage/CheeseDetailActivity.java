@@ -14,12 +14,15 @@ import android.view.MenuItem;
 import android.widget.ImageView;
 
 import com.bumptech.glide.Glide;
+import com.roughike.bottombar.BottomBar;
+import com.roughike.bottombar.OnMenuTabClickListener;
 
 import java.util.Random;
 
 public class CheeseDetailActivity extends AppCompatActivity {
 
     public static final String EXTRA_NAME = "cheese_name";
+    private BottomBar bottomBar;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -38,6 +41,18 @@ public class CheeseDetailActivity extends AppCompatActivity {
         collapsingToolbar.setTitle(cheeseName);
 
         loadBackdrop();
+
+        bottomBar = BottomBar.attach(this, savedInstanceState);
+        bottomBar.setItemsFromMenu(R.menu.menu_navigation, new OnMenuTabClickListener() {
+            @Override
+            public void onMenuTabSelected(int menuItemId) {
+
+            }
+            @Override
+            public void onMenuTabReSelected(int menuItemId) {
+
+            }
+        });
     }
 
     private void loadBackdrop() {

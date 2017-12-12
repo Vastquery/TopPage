@@ -1,5 +1,6 @@
 package com.example.www.toppage;
 
+import android.app.SearchManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
@@ -9,36 +10,51 @@ import android.support.design.widget.TabLayout;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.view.GravityCompat;
+import android.support.v4.view.MenuItemCompat;
 import android.support.v4.view.ViewPager;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.app.AppCompatDelegate;
+import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.SearchView;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.Toast;
+
+import com.roughike.bottombar.BottomBar;
+import com.roughike.bottombar.OnMenuTabClickListener;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
-/**
- * TODO
- */
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements SearchAdapter.SearchAdapterListener {
 
     private DrawerLayout mDrawerLayout;
+    ViewPager viewpager;
+    LinearLayout sliderDotsPanel;
+    private int dotscount;
+    private ImageView[] dots;
+    private List<Cheese> cheeseList;
+    private SearchAdapter searchAdapter;
+    private SearchView searchView;
+    private RecyclerView recyclerView;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
 
@@ -46,34 +62,79 @@ public class MainActivity extends AppCompatActivity {
         ab.setHomeAsUpIndicator(R.drawable.ic_menu);
         ab.setDisplayHomeAsUpEnabled(true);
 
-        mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
+        mDrawerLayout =  findViewById(R.id.drawer_layout);
 
-        NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
+        NavigationView navigationView =  findViewById(R.id.nav_view);
         if (navigationView != null) {
             setupDrawerContent(navigationView);
         }
 
-        ViewPager viewPager = (ViewPager) findViewById(R.id.viewpager);
+        ViewPager viewPager =  findViewById(R.id.viewpager);
         if (viewPager != null) {
             setupViewPager(viewPager);
         }
 
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
+
+        TabLayout tabLayout =  findViewById(R.id.tabs);
+        tabLayout.setupWithViewPager(viewPager);
+
+        SlidingImage();
+
+        //search action
+        cheeseList = new ArrayList<>();
+        searchAdapter = new SearchAdapter(this, cheeseList, this);
+        recyclerView = findViewById(R.id.recyclerview);
+        //recyclerView.setAdapter(searchAdapter);
+
+        //Bottom Navigation
+        BottomBar bottomBar = BottomBar.attach(this, savedInstanceState);
+        bottomBar.setItemsFromMenu(R.menu.menu_navigation, new OnMenuTabClickListener() {
             @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Here's a Snackbar", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+            public void onMenuTabSelected(int menuItemId) {
+
+            }
+            @Override
+            public void onMenuTabReSelected(int menuItemId) {
+
             }
         });
-
-        TabLayout tabLayout = (TabLayout) findViewById(R.id.tabs);
-        tabLayout.setupWithViewPager(viewPager);
     }
+
+
+
+
+
+    //Menu option
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.sample_actions, menu);
+
+        //search option
+        searchView = (SearchView) MenuItemCompat.getActionView(menu.findItem(R.id.action_search));
+        final SearchManager searchManager = (SearchManager) getSystemService(SEARCH_SERVICE);
+        searchView.setSearchableInfo(searchManager.getSearchableInfo(getComponentName()));
+        searchView.setSubmitButtonEnabled(true);
+        searchView.setMaxWidth(Integer.MAX_VALUE);
+
+
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+
+                searchAdapter.getFilter().filter(query);
+                return false;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+
+                searchAdapter.getFilter().filter(newText);
+                return false;
+            }
+        });
+
+
         return true;
     }
 
@@ -98,23 +159,15 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case android.R.id.home:
-                mDrawerLayout.openDrawer(GravityCompat.START);
-                return true;
-            case R.id.menu_night_mode_system:
-                setNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
-                break;
-            case R.id.menu_night_mode_day:
-                setNightMode(AppCompatDelegate.MODE_NIGHT_NO);
-                break;
-            case R.id.menu_night_mode_night:
-                setNightMode(AppCompatDelegate.MODE_NIGHT_YES);
-                break;
-            case R.id.menu_night_mode_auto:
-                setNightMode(AppCompatDelegate.MODE_NIGHT_AUTO);
-                break;
+
+
+        int id = item.getItemId();
+
+        //noinspection SimplifiableIfStatement
+        if (id == R.id.action_search) {
+            return true;
         }
+
         return super.onOptionsItemSelected(item);
     }
 
@@ -146,6 +199,8 @@ public class MainActivity extends AppCompatActivity {
                 });
     }
 
+
+
     static class Adapter extends FragmentPagerAdapter {
         private final List<Fragment> mFragments = new ArrayList<>();
         private final List<String> mFragmentTitles = new ArrayList<>();
@@ -174,4 +229,81 @@ public class MainActivity extends AppCompatActivity {
             return mFragmentTitles.get(position);
         }
     }
+
+    public void SlidingImage(){
+
+        // sliding viewpager
+        viewpager = findViewById(R.id.sliding_viewpager);
+        ViewPageAdapter viewPageAdapter = new ViewPageAdapter(this);
+        viewpager.setAdapter(viewPageAdapter);
+
+        //auto slider
+        Timer timer = new Timer();
+        timer.scheduleAtFixedRate(new MyTimerTask(), 2000, 4000);
+
+        //dots in slider
+        sliderDotsPanel =  findViewById(R.id.dots);
+        dotscount = viewPageAdapter.getCount();
+        dots = new  ImageView[dotscount];
+
+        for(int i=0; i<dotscount ; i++){
+
+            dots[i] = new ImageView(this);
+            dots[i].setImageDrawable(ContextCompat.getDrawable(getApplicationContext(),R.drawable.nonactivedots));
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.MATCH_PARENT);
+            params.setMargins(8,0,8,0);
+
+            sliderDotsPanel.addView(dots[i],params);
+
+        }
+        dots[0].setImageDrawable(ContextCompat.getDrawable(getApplicationContext(), R.drawable.activedots));
+
+        viewpager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
+            @Override
+            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+
+            }
+
+            @Override
+            public void onPageSelected(int position) {
+                for(int i=0; i<dotscount ; i++){
+                    dots[i].setImageDrawable(ContextCompat.getDrawable(getApplicationContext(), R.drawable.nonactivedots));
+                }
+                dots[position].setImageDrawable(ContextCompat.getDrawable(getApplicationContext(),R.drawable.activedots));
+            }
+
+            @Override
+            public void onPageScrollStateChanged(int state) {
+
+            }
+        });
+
+    }
+
+    public class MyTimerTask extends TimerTask {
+
+        @Override
+        public void run() {
+
+            MainActivity.this.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+
+                    if(viewpager.getCurrentItem() == 0)
+                        viewpager.setCurrentItem(1);
+                    else if(viewpager.getCurrentItem() == 1)
+                        viewpager.setCurrentItem(2);
+                    else
+                        viewpager.setCurrentItem(0);
+                }
+            });
+        }
+    }
+
+    //search listener
+    @Override
+    public void onCheeseSelected(Cheese cheese) {
+        Toast.makeText(getApplicationContext(),"Selected: "+cheese.getName(),Toast.LENGTH_LONG).show();
+    }
 }
+
